@@ -4,12 +4,12 @@ import asyncio
 import time
 from websockets.sync.client import connect
 
-client_Secret = "Wjs9ej9xtBCqnz5nIfJlImrSJkJPPOgfb1KzIYqr3w8aRlB1YaQzN9j707gtm5dIcObbuwUELpY9W9n5oBlwkYMjE29vVZp3pJztHx56f7lkv5qSz0LLAyfqAvTcor4y"
+client_Secret = ""
 
-client_ID = "H3EQDXBrPVwmbOssBRDhop2aawq7EhzOxIGi6vgQ"
+client_ID = ""
 
 
-coderBot_1684 = 'https://ac4208b9f0765aabe18f0e39bd617359.balena-devices.com/api/v1'
+coderBot_1684 = ''
 
 BASE_URL = coderBot_1684
 
