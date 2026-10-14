@@ -2,44 +2,77 @@
 
 ## Overview
 
-This repository contains a small Python codebase for connecting to an Emotiv headset through the Emotiv Cortex WebSocket API, streaming EEG-related data, and optionally sending CoderBot movement commands from Emotiv performance metrics.
+This repository contains Python code for connecting to Emotiv Cortex, reading Emotiv-classified EEG-related streams, and optionally sending movement commands to a CoderBot HTTP API.
 
-The project has been organized into reusable modules so the external API calls, configuration, workflow orchestration, and metric decision logic can be tested independently. The original script filenames are kept as compatibility entrypoints.
+The current codebase is organized as a small package named `eeg_coderbot`. The top-level scripts are compatibility wrappers that call the package CLI.
 
-## Main purpose
+## What this project currently does
 
-The code supports three main workflows:
+The repository currently supports these workflows:
 
-- Subscribe to an Emotiv Cortex data stream and print incoming messages.
-- Subscribe to Emotiv performance metrics (`met`) and ask CoderBot to move when engagement and excitement values are both positive.
-- Run a selectable mental-state reading algorithm that consumes Emotiv-classified Cortex streams and maps the resulting state to a CoderBot movement plan.
+1. **Print an Emotiv stream**: subscribe to a selected Cortex stream and print incoming messages.
+2. **Move CoderBot from performance metrics**: subscribe to the Emotiv `met` stream and call CoderBot movement when engagement and excitement are both positive.
+3. **Run mental-state algorithms**: subscribe to Emotiv-classified `met` or `com` streams and map selected mental states or mental commands to different CoderBot movement settings.
 
-The repository appears to be exploratory or lab-oriented. It assumes that Emotiv Launcher/Cortex is running locally, that valid Emotiv application credentials are available, and that a compatible headset is connected.
+The code does **not** implement raw EEG classification. Mental-state decisions are based on values already classified by Emotiv Cortex streams.
 
-## Repository structure
+## Actual repository contents
 
 ```text
 .
+├── .env.example
+├── README.md
 ├── eeg_coderbot/
-│   ├── __init__.py            # Package exports
-│   ├── cli.py                 # Command-line argument parsing and entrypoint routing
-│   ├── coderbot.py            # CoderBot HTTP client, including dry-run behavior
-│   ├── config.py              # Centralized environment-based configuration
-│   ├── cortex.py              # Emotiv Cortex JSON-RPC WebSocket client
-│   ├── metrics.py             # Reusable metric mapping and movement decision helpers
-│   ├── mental_states/         # Emotiv-classified mental-state reading algorithms
-│   └── workflows.py           # High-level Emotiv streaming and CoderBot orchestration
-├── tests/
-│   ├── test_coderbot.py       # Unit tests for CoderBot API and dry-run behavior
-│   ├── test_config.py         # Unit tests for environment configuration parsing
-│   └── test_metrics.py        # Unit tests for metric helpers and edge cases
-├── .env.example               # Example environment configuration
-├── emotiv_coderbot_AsusLab.py # Compatibility wrapper for metrics-to-CoderBot workflow
-├── emotiv_dataStream_asusLab.py # Compatibility wrapper for stream-printing workflow
-├── emotiv_mental_states_AsusLab.py # Compatibility wrapper for mental-state algorithms
-├── requirements.txt           # Runtime Python dependencies
-└── README.md                  # Project documentation
+│   ├── __init__.py
+│   ├── cli.py
+│   ├── coderbot.py
+│   ├── config.py
+│   ├── cortex.py
+│   ├── metrics.py
+│   ├── workflows.py
+│   └── mental_states/
+│       ├── __init__.py
+│       └── algorithms.py
+├── emotiv_coderbot_AsusLab.py
+├── emotiv_dataStream_asusLab.py
+├── emotiv_mental_states_AsusLab.py
+├── requirements.txt
+└── tests/
+    ├── test_coderbot.py
+    ├── test_config.py
+    ├── test_mental_states.py
+    └── test_metrics.py
 ```
+
+## File and folder guide
+
+### Top-level files
+
+- `.env.example`: example environment variables for Emotiv Cortex, CoderBot, dry-run mode, and movement settings.
+- `README.md`: this documentation file.
+- `requirements.txt`: runtime Python dependencies.
+- `emotiv_dataStream_asusLab.py`: compatibility wrapper for the stream-printing workflow.
+- `emotiv_coderbot_AsusLab.py`: compatibility wrapper for the original performance-metrics-to-CoderBot workflow.
+- `emotiv_mental_states_AsusLab.py`: compatibility wrapper for the mental-state algorithm workflow.
+
+### Package files
+
+- `eeg_coderbot/__init__.py`: package exports for the main configuration classes.
+- `eeg_coderbot/cli.py`: command-line parser and workflow routing.
+- `eeg_coderbot/config.py`: centralized configuration dataclasses loaded from environment variables.
+- `eeg_coderbot/cortex.py`: Emotiv Cortex JSON-RPC WebSocket client wrapper.
+- `eeg_coderbot/coderbot.py`: CoderBot HTTP client with dry-run support.
+- `eeg_coderbot/metrics.py`: helper functions for mapping metric values and preserving the original movement condition.
+- `eeg_coderbot/workflows.py`: orchestration code for Cortex sessions, stream subscriptions, and CoderBot actions.
+- `eeg_coderbot/mental_states/__init__.py`: exports the mental-state algorithm classes and registry helpers.
+- `eeg_coderbot/mental_states/algorithms.py`: mental-state reading algorithms based on Emotiv `met` and `com` streams.
+
+### Tests
+
+- `tests/test_config.py`: tests environment configuration parsing.
+- `tests/test_coderbot.py`: tests CoderBot API behavior and dry-run behavior.
+- `tests/test_metrics.py`: tests metric helper functions.
+- `tests/test_mental_states.py`: tests mental-state algorithms and algorithm registry behavior.
 
 ## Architecture
 
@@ -53,18 +86,17 @@ The code separates responsibilities into explicit modules:
 - **CLI/entrypoints**: `eeg_coderbot.cli` handles command-line routing. The original root scripts delegate to this CLI so existing usage still works.
 - **Tests**: `tests/` covers configuration parsing, metric edge cases, and dry-run/API behavior without requiring real Emotiv or CoderBot services.
 
+
 ## Installation
 
-### 1. Clone the repository
+### Clone the repository
 
 ```bash
-git clone <repository-url>
-cd eeg_coderbot
+git clone https://github.com/nico-0223/Brain-Robot-Interface.git
+cd Brain-Robot-Interface
 ```
 
-### 2. Create and activate a Python environment
-
-Python 3 is required. A virtual environment is recommended:
+### 1. Create a Python environment
 
 ```bash
 python3 -m venv .venv
@@ -78,152 +110,135 @@ python -m venv .venv
 .\.venv\Scripts\Activate.ps1
 ```
 
-### 3. Install dependencies
+### 2. Install dependencies
 
 ```bash
 pip install -r requirements.txt
 ```
 
-The runtime dependencies are:
+Runtime dependencies currently listed in `requirements.txt`:
 
 - `requests`
 - `websockets`
 
-The tests use Python's standard-library `unittest` framework, so no separate test dependency is required.
+The tests use Python's standard-library `unittest` module.
 
-## Configuration and environment setup
+## Configuration
 
-Copy `.env.example` or export equivalent environment variables in your shell. The code reads from environment variables directly; it does not automatically load `.env` files.
+The code reads configuration from environment variables. It does not automatically load `.env` files. Use `.env.example` as a template and load variables with your shell or environment manager.
 
 ```bash
 cp .env.example .env
 ```
 
-If you use a `.env` file, load it with your shell or preferred environment manager before running the scripts.
+Environment variables currently used:
 
-### Environment variables
-
-| Variable | Default | Purpose |
+| Variable | Default | Used for |
 | --- | --- | --- |
 | `EMOTIV_CORTEX_URL` | `wss://localhost:6868` | Emotiv Cortex WebSocket URL. |
 | `EMOTIV_CLIENT_ID` | empty | Emotiv application client ID. |
-| `EMOTIV_CLIENT_SECRET` | empty | Emotiv application client secret. Do not commit real secrets. |
-| `CODERBOT_BASE_URL` | empty | Base URL for the CoderBot HTTP API. Required for non-dry-run CoderBot actions. |
-| `DRY_RUN` | `false` | When true, prints CoderBot actions without sending mutating HTTP requests. |
-| `CODERBOT_MOVE_SPEED` | `100` | Speed value sent to the CoderBot movement endpoint. |
-| `CODERBOT_MOVE_ELAPSE` | `1` | Duration value sent to the CoderBot movement endpoint. |
-| `EXPERIMENT_SECONDS` | `120` | Duration of the metrics-to-CoderBot loop. |
+| `EMOTIV_CLIENT_SECRET` | empty | Emotiv application client secret. |
+| `CODERBOT_BASE_URL` | empty | CoderBot HTTP API base URL. Required unless `DRY_RUN=true`. |
+| `DRY_RUN` | `false` | Prints CoderBot actions without sending mutating HTTP requests. |
+| `CODERBOT_MOVE_SPEED` | `100` | Default movement speed for the legacy metrics workflow. |
+| `CODERBOT_MOVE_ELAPSE` | `1` | Default movement duration for the legacy metrics workflow. |
+| `EXPERIMENT_SECONDS` | `120` | Runtime duration for metrics and mental-state workflows. |
 
-### External services
+Do not commit real Emotiv credentials or production CoderBot URLs.
 
-You need the following for live runs:
+## Required external services for live runs
 
-- Emotiv Launcher / Cortex service running locally or at `EMOTIV_CORTEX_URL`
-- An Emotiv headset connected and available through Cortex
-- Valid Emotiv application credentials
-- For CoderBot control, a reachable CoderBot HTTP API base URL
+Live workflows require:
 
-## Mental-state algorithms
+- Emotiv Launcher/Cortex running and reachable at `EMOTIV_CORTEX_URL`.
+- A connected Emotiv headset visible to Cortex.
+- Valid Emotiv application credentials.
+- A reachable CoderBot HTTP API if `DRY_RUN=false` and a workflow sends CoderBot movements.
 
-Mental-state algorithms live in `eeg_coderbot/mental_states/`. They are based on Emotiv-classified stream data rather than raw EEG signal processing. Two algorithms are included:
+Unit tests do not require live Emotiv or CoderBot services.
 
-| Algorithm | Emotiv stream | What it reads | CoderBot behavior |
-| --- | --- | --- | --- |
-| `performance-threshold` | `met` | Emotiv performance metrics such as engagement, excitement, relaxation, stress, interest, and focus. | Maps focused, relaxed, interested, and engaged/excited states to different `move` speeds/durations; stress, neutral, and no-signal states do not move. |
-| `mental-command` | `com` | Emotiv mental-command action and power values. | Maps known actions such as `push`, `pull`, `lift`, `drop`, `left`, and `right` to different `move` speeds/durations when power is above threshold. Unknown or low-power commands do not move. |
+## Dry-run mode
 
-Run the default algorithm with:
+Set `DRY_RUN=true` to prevent mutating CoderBot HTTP requests. In dry-run mode, CoderBot actions are printed instead of posted.
+
+Example:
+
+```bash
+export DRY_RUN=true
+python emotiv_mental_states_AsusLab.py
+```
+
+Example dry-run output from the CoderBot client:
+
+```text
+DRY RUN: would POST http://coderbot.local/control/move with {'speed': 100, 'elapse': 1}
+```
+
+Dry-run mode affects CoderBot actions only. The workflows still connect to Emotiv Cortex and read stream data.
+
+## How to run
+
+### Print an Emotiv stream
+
+Using the compatibility wrapper:
+
+```bash
+python emotiv_dataStream_asusLab.py
+```
+
+Using the package CLI:
+
+```bash
+python -m eeg_coderbot.cli stream --stream met --message-count 100
+```
+
+Supported stream names are defined in `eeg_coderbot.workflows` and currently include:
+
+```text
+eeg, met, mot, dev, eq, pow, com, fac, sys
+```
+
+### Run the legacy metrics-to-CoderBot workflow
+
+Using the compatibility wrapper:
+
+```bash
+python emotiv_coderbot_AsusLab.py
+```
+
+Using the package CLI:
+
+```bash
+python -m eeg_coderbot.cli coderbot
+```
+
+This workflow subscribes to the Emotiv `met` stream. It sends a CoderBot move request when engagement and excitement are both greater than zero.
+
+### Run a mental-state algorithm
+
+Using the compatibility wrapper:
 
 ```bash
 python emotiv_mental_states_AsusLab.py
 ```
 
-Or select an algorithm explicitly:
+Using the package CLI:
 
 ```bash
 python -m eeg_coderbot.cli mental-states --algorithm performance-threshold
 python -m eeg_coderbot.cli mental-states --algorithm mental-command
 ```
 
-The movement mappings intentionally use the existing CoderBot `move` command only, because the repository does not document additional movement endpoints such as turn or stop commands.
+## Mental-state algorithms currently included
 
-## Dry-run mode
+Mental-state algorithms are in `eeg_coderbot/mental_states/algorithms.py`.
 
-Dry-run mode is controlled by `DRY_RUN=true`. In dry-run mode, the metrics-to-CoderBot workflow still connects to Emotiv Cortex and processes stream messages, but CoderBot mutating HTTP requests are not sent. Instead, the CoderBot client prints a visible message such as:
+| Algorithm | Emotiv stream | Behavior |
+| --- | --- | --- |
+| `performance-threshold` | `met` | Reads Emotiv performance metric positions used by the original script. It can classify `focused`, `relaxed`, `stressed`, `engaged_excited`, `interested`, `neutral`, or `no_signal`. Some states map to different CoderBot movement speeds/durations. |
+| `mental-command` | `com` | Reads Emotiv mental-command action and power values. Known actions such as `push`, `pull`, `lift`, `drop`, `left`, and `right` map to different CoderBot movement speeds/durations when power is above threshold. |
 
-```text
-DRY RUN: would POST http://coderbot.local/control/move with {'speed': 100, 'elapse': 1}
-```
-
-Use dry-run mode when testing the integration flow without moving a robot:
-
-```bash
-export DRY_RUN=true
-python emotiv_coderbot_AsusLab.py
-# or
-python emotiv_mental_states_AsusLab.py
-```
-
-## How to run the code
-
-### Stream Emotiv data
-
-Run the compatibility script:
-
-```bash
-python emotiv_dataStream_asusLab.py
-```
-
-When prompted, enter one of the stream names shown by the script, for example:
-
-```text
-met
-```
-
-Alternatively, call the package CLI directly:
-
-```bash
-python -m eeg_coderbot.cli stream --stream met --message-count 100
-```
-
-The script will print subscription messages received from Cortex.
-
-### Stream metrics and control CoderBot
-
-After configuring Emotiv credentials and `CODERBOT_BASE_URL`, run:
-
-```bash
-python emotiv_coderbot_AsusLab.py
-```
-
-Or call the package CLI directly:
-
-```bash
-python -m eeg_coderbot.cli coderbot
-```
-
-To run the mental-state algorithm workflow, use:
-
-```bash
-python -m eeg_coderbot.cli mental-states --algorithm performance-threshold
-```
-
-The workflow subscribes to the `met` stream and monitors selected performance metrics. If engagement and excitement values are present and both greater than zero, it calls the CoderBot movement client.
-
-In non-dry-run mode, that sends:
-
-```http
-POST {CODERBOT_BASE_URL}/control/move
-```
-
-with a JSON body similar to:
-
-```json
-{
-  "speed": 100,
-  "elapse": 1
-}
-```
+The movement mappings use the existing CoderBot `move` request only. This repository does not currently document separate CoderBot endpoints for turning, stopping, or other robot-specific actions.
 
 ## Example usage
 
@@ -245,31 +260,31 @@ export DRY_RUN=true
 python -m eeg_coderbot.cli coderbot
 ```
 
+
 ## Inputs and outputs
 
 ### Inputs
 
-- Emotiv Cortex WebSocket messages from `EMOTIV_CORTEX_URL`
-- Emotiv application credentials from environment variables
-- User-entered or CLI-provided stream type for the stream-printing workflow
-- CoderBot API base URL from `CODERBOT_BASE_URL`
-- Movement parameters from environment variables
+- Emotiv Cortex JSON-RPC responses and subscription messages from `EMOTIV_CORTEX_URL`.
+- Emotiv credentials from environment variables.
+- A selected stream name or mental-state algorithm name.
+- Optional CoderBot base URL and movement settings from environment variables.
 
 ### Outputs
 
-- Terminal output containing login, access, license, subscription, timing, dry-run, and response messages
-- Optional CoderBot HTTP requests to move the robot when `DRY_RUN=false`
-- No project data files are written by the current workflows
+- Terminal logs showing login/access/session/subscription messages and interpreted mental states.
+- Optional CoderBot HTTP POST requests to `{CODERBOT_BASE_URL}/control/move` when dry-run mode is disabled.
+- No repository data files are written by the current workflows.
 
 ## Running tests
 
-Run all unit tests with:
+Run all tests:
 
 ```bash
 python -m unittest discover -s tests
 ```
 
-The tests avoid live Emotiv and CoderBot services by injecting fake clients where needed.
+The current tests cover configuration parsing, CoderBot dry-run and HTTP behavior, metric helpers, mental-state algorithms, and algorithm registry errors.
 
 ## Extending the codebase
 
@@ -283,26 +298,26 @@ When adding new behavior, prefer the existing module boundaries:
 - Keep orchestration in `eeg_coderbot.workflows` and CLI concerns in `eeg_coderbot.cli`.
 - Add unit tests under `tests/` for normal cases, edge cases, and failure cases.
 
+
 ## Known limitations and assumptions
 
-- The code assumes the first headset returned by Cortex is the desired headset.
-- The Emotiv Cortex connection and credentials must be configured externally; no interactive credential setup is provided.
-- The code reads environment variables but does not automatically parse `.env` files.
-- Live Cortex behavior is not covered by the unit tests.
-- The legacy CoderBot movement rule is intentionally minimal: it checks whether engagement and excitement are both greater than zero.
-- The mental-state algorithms rely on Emotiv-classified Cortex streams and do not perform raw EEG classification.
-- The intended CoderBot endpoint, robot model, and lab setup are not documented in the source code.
+- The code assumes the first headset returned by Cortex is the intended headset.
+- `.env` files are not loaded automatically.
+- The unit tests do not exercise a live Emotiv Cortex WebSocket connection.
+- The mental-state algorithms use Emotiv-classified streams and do not classify raw EEG.
+- CoderBot movement support is limited to the existing `move` call used by this repository.
+- The repository does not include sample data, notebooks, packaging metadata, CI configuration, or a formal license file.
 
-## To be completed
+## Suggested future improvements
 
-Future collaborators may want to add:
-
-- More complete command-line options for all configuration values
-- Integration tests with mocked Cortex WebSocket messages
-- Setup instructions specific to Emotiv account/application registration
-- More robust logging configuration
-- Sample output or recorded example data
+- Add command-line flags for more configuration values.
+- Add integration tests with mocked Cortex WebSocket traffic.
+- Document the exact Emotiv headset, Cortex version, and CoderBot API expected by the lab setup.
+- Add sample stream messages for development without hardware.
+- Document Emotiv account/application registration.
+- Add configurable logging.
+- Add project packaging metadata if this should be installed as a package.
 
 ## Citation and authorship
 
-No formal citation, license, or author metadata is included in the repository. If this code is used in a publication or shared project, add the appropriate authors, lab affiliation, and citation details here.
+No formal citation, license, or author metadata is currently included in the repository. Add project authors, lab affiliation, and citation details here if this code is used in a publication or shared externally.
