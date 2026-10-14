@@ -74,7 +74,27 @@ The code does **not** implement raw EEG classification. Mental-state decisions a
 - `tests/test_metrics.py`: tests metric helper functions.
 - `tests/test_mental_states.py`: tests mental-state algorithms and algorithm registry behavior.
 
+## Architecture
+
+The code separates responsibilities into explicit modules:
+
+- **Configuration**: `eeg_coderbot.config` reads environment variables into typed dataclasses.
+- **External API calls**: `eeg_coderbot.cortex` wraps Emotiv Cortex WebSocket JSON-RPC calls, and `eeg_coderbot.coderbot` wraps CoderBot HTTP calls.
+- **Business logic**: `eeg_coderbot.metrics` contains the reusable movement decision helper.
+- **Mental-state algorithms**: `eeg_coderbot.mental_states` contains algorithms that consume Emotiv-classified `met` and `com` streams and map states to CoderBot movement plans.
+- **Orchestration**: `eeg_coderbot.workflows` coordinates Cortex sessions, subscriptions, and CoderBot movement.
+- **CLI/entrypoints**: `eeg_coderbot.cli` handles command-line routing. The original root scripts delegate to this CLI so existing usage still works.
+- **Tests**: `tests/` covers configuration parsing, metric edge cases, and dry-run/API behavior without requiring real Emotiv or CoderBot services.
+
+
 ## Installation
+
+### Clone the repository
+
+```bash
+git clone https://github.com/nico-0223/Brain-Robot-Interface.git
+cd Brain-Robot-Interface
+```
 
 ### 1. Create a Python environment
 
@@ -220,6 +240,27 @@ Mental-state algorithms are in `eeg_coderbot/mental_states/algorithms.py`.
 
 The movement mappings use the existing CoderBot `move` request only. This repository does not currently document separate CoderBot endpoints for turning, stopping, or other robot-specific actions.
 
+## Example usage
+
+Example workflow for printing the performance-metric stream:
+
+```bash
+export EMOTIV_CLIENT_ID=<your-client-id>
+export EMOTIV_CLIENT_SECRET=<your-client-secret>
+python -m eeg_coderbot.cli stream --stream met
+```
+
+Example workflow for testing CoderBot control without moving the robot:
+
+```bash
+export EMOTIV_CLIENT_ID=<your-client-id>
+export EMOTIV_CLIENT_SECRET=<your-client-secret>
+export CODERBOT_BASE_URL=http://coderbot.local
+export DRY_RUN=true
+python -m eeg_coderbot.cli coderbot
+```
+
+
 ## Inputs and outputs
 
 ### Inputs
@@ -245,6 +286,19 @@ python -m unittest discover -s tests
 
 The current tests cover configuration parsing, CoderBot dry-run and HTTP behavior, metric helpers, mental-state algorithms, and algorithm registry errors.
 
+## Extending the codebase
+
+When adding new behavior, prefer the existing module boundaries:
+
+- Add new environment settings to `eeg_coderbot.config`.
+- Add new Cortex API methods to `eeg_coderbot.cortex`.
+- Add new CoderBot commands to `eeg_coderbot.coderbot`, preserving dry-run behavior for mutating actions.
+- Add testable decision logic to `eeg_coderbot.metrics` or a new focused module.
+- Add new mental-state readers under `eeg_coderbot/mental_states/` and register them with `get_algorithm()`.
+- Keep orchestration in `eeg_coderbot.workflows` and CLI concerns in `eeg_coderbot.cli`.
+- Add unit tests under `tests/` for normal cases, edge cases, and failure cases.
+
+
 ## Known limitations and assumptions
 
 - The code assumes the first headset returned by Cortex is the intended headset.
@@ -260,6 +314,8 @@ The current tests cover configuration parsing, CoderBot dry-run and HTTP behavio
 - Add integration tests with mocked Cortex WebSocket traffic.
 - Document the exact Emotiv headset, Cortex version, and CoderBot API expected by the lab setup.
 - Add sample stream messages for development without hardware.
+- Document Emotiv account/application registration.
+- Add configurable logging.
 - Add project packaging metadata if this should be installed as a package.
 
 ## Citation and authorship
